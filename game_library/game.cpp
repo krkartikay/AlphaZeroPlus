@@ -24,20 +24,56 @@ bool GameState::terminated() const {
 }
 
 std::vector<std::pair<int, int>> GameState::legalActions() const {
-  // Generate legal pawn moves. This example only considers simple forward
-  // moves.
   std::vector<std::pair<int, int>> actions;
-  for (int row = 0; row < 8; row++) {
-    for (int col = 0; col < 8; col++) {
+
+  int direction = (currentPlayer == Player::WHITE)
+                      ? 1
+                      : -1;  // White moves up, Black moves down.
+
+  for (int row = 0; row < 8; ++row) {
+    for (int col = 0; col < 8; ++col) {
       if (board[row][col] == currentPlayer) {
-        int nextRow = (currentPlayer == Player::WHITE) ? row + 1 : row - 1;
-        if (nextRow >= 0 && nextRow < 8 &&
-            board[nextRow][col] == Player::NONE) {
-          actions.emplace_back(row * 8 + col, nextRow * 8 + col);
+        // Forward move
+        if (row + direction >= 0 && row + direction < 8 &&
+            board[row + direction][col] == Player::NONE) {
+          actions.emplace_back(row * 8 + col, (row + direction) * 8 + col);
+
+          // Double forward move from starting position
+          if ((currentPlayer == Player::WHITE && row == 1) ||
+              (currentPlayer == Player::BLACK && row == 6)) {
+            if (board[row + 2 * direction][col] == Player::NONE) {
+              actions.emplace_back(row * 8 + col,
+                                   (row + 2 * direction) * 8 + col);
+            }
+          }
+        }
+
+        // Capture moves
+        for (int offset : {-1, 1}) {
+          if (col + offset >= 0 && col + offset < 8 &&
+              board[row + direction][col + offset] ==
+                  Player(-int(currentPlayer))) {
+            actions.emplace_back(row * 8 + col,
+                                 (row + direction) * 8 + col + offset);
+          }
+        }
+
+        // En passant
+        if (lastMove) {
+          int lastFromRow = lastMove->first / 8;
+          int lastFromCol = lastMove->first % 8;
+          int lastToRow = lastMove->second / 8;
+          int lastToCol = lastMove->second % 8;
+
+          if (abs(lastToRow - lastFromRow) == 2 && lastToCol == col &&
+              abs(lastToRow - row) == 1) {
+            actions.emplace_back(row * 8 + col, lastToRow * 8 + col);
+          }
         }
       }
     }
   }
+
   return actions;
 }
 
@@ -48,21 +84,27 @@ void GameState::makeMove(int fromIdx, int toIdx) {
   int toCol = toIdx % 8;
 
   if (board[fromRow][fromCol] != currentPlayer ||
-      board[toRow][toCol] != Player::NONE) {
+      board[toRow][toCol] == currentPlayer) {
     throw std::runtime_error("Illegal move");
   }
 
-  // Move the pawn
-  board[toRow][toCol] = currentPlayer;
+  // Update board and lastMove
+  board[toRow][toCol] = board[fromRow][fromCol];
   board[fromRow][fromCol] = Player::NONE;
+  lastMove = std::make_pair(fromIdx, toIdx);
+
+  // Handle en passant capture
+  if (abs(toRow - fromRow) == 1 && toCol != fromCol &&
+      board[toRow][toCol] == Player::NONE) {
+    board[fromRow][toCol] = Player::NONE;
+  }
 
   // Switch player
-  currentPlayer =
-      (currentPlayer == Player::WHITE) ? Player::BLACK : Player::WHITE;
+  currentPlayer = Player(-int(currentPlayer));
 }
 
 void GameState::printBoard() const {
-  for (int i = 0; i < 8; i++) {
+  for (int i = 7; i >= 0; i--) {
     for (int j = 0; j < 8; j++) {
       switch (board[i][j]) {
         case Player::WHITE:
@@ -80,4 +122,34 @@ void GameState::printBoard() const {
   }
   std::cout << (currentPlayer == Player::WHITE ? "White" : "Black")
             << " to move\n";
+}
+
+std::array<std::array<int, 8>, 8> GameState::toImage() const {
+  std::array<std::array<int, 8>, 8> image = {0};  // Initializing to zeros
+
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      switch (board[i][j]) {
+        case Player::WHITE:
+          image[i][j] = 1;
+          break;
+        case Player::BLACK:
+          image[i][j] = -1;
+          break;
+        default:
+          image[i][j] = 0;
+          break;
+      }
+    }
+  }
+
+  return image;
+}
+
+int GameState::leafValue() const {
+  Player winnerPlayer = winner();
+  if (winnerPlayer == Player::NONE) {
+    return 0;
+  }
+  return (winnerPlayer == currentPlayer) ? 1 : -1;
 }

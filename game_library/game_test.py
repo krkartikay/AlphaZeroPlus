@@ -1,16 +1,29 @@
 import game
+import random
 
 # Create a GameState object
 g = game.GameState()
 
+g.printBoard()
+
 # Perform moves until the game is terminated
 while not g.terminated():
     actions = g.legalActions()
-    g.printBoard()
-    if actions:
-        g.makeMove(actions[0][0], actions[0][1])
-    else:
-        print("Stalemate!")
+    print(actions)
+    print()
 
-# Print the final game board
-g.printBoard()
+    first, second = random.choice(actions)
+    g.makeMove(first, second)
+
+    # Print the final game board
+    g.printBoard()
+    print()
+
+if g.winner() == game.WHITE:
+    print("White wins!")
+elif g.winner() == game.BLACK:
+    print("Black wins!")
+else:
+    print("No one wins!")
+
+print()

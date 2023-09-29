@@ -1,14 +1,11 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <iostream>
-
 #include "game.h"
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(game, m) {
-  std::cout << "Initializing game module!!!!1!";
   py::enum_<Player>(m, "Player")
       .value("NONE", Player::NONE)
       .value("WHITE", Player::WHITE)
@@ -22,5 +19,6 @@ PYBIND11_MODULE(game, m) {
       .def("terminated", &GameState::terminated)
       .def("legalActions", &GameState::legalActions)
       .def("makeMove", &GameState::makeMove)
+      .def("toImage", &GameState::toImage)
       .def("printBoard", &GameState::printBoard);
 }
