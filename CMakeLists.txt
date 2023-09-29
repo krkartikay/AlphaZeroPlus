@@ -18,5 +18,5 @@ target_link_libraries(game_main PUBLIC game_lib)
 # python bindings using pybind
 set(SYSTEM ON)
 add_subdirectory(pybind11)
-pybind11_add_module(pygamebindings game_library/game_bindings.cpp)
-target_link_libraries(pygamebindings PUBLIC game_lib)
+pybind11_add_module(game game_library/game_bindings.cpp)
+target_link_libraries(game PUBLIC game_lib)
